@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "SFTP_ABS_AzureFunctions": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7198",
+      "launchBrowser": false
+    }
+  }
+}
