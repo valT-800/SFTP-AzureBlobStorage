@@ -240,11 +240,8 @@ codeunit 50010 "SFTP con WinSCP"
         // RemoteFileInfoCollection: DotNet RemoteFileInfoCollection;
         // Session: DotNet Session;
         //i: Integer;
-        httpContent: HttpContent;
         jsonText: text;
         httpResponse: HttpResponseMessage;
-        httpRequest: HttpRequestMessage;
-        httpHeader: HttpHeaders;
         JsonArray: JsonArray;
         ParamToken: JsonToken;
         name: text;
@@ -273,11 +270,8 @@ codeunit 50010 "SFTP con WinSCP"
         // 
         // Session.Dispose();
 
-        CheckSessionOptions();
-        httpRequest.Method('GET');
         uri := HttpClient.GetBaseAddress() + StrSubstNo('SFTPListDirectory?sftpPath=%1&includeDirectories=%2', Url, IncludeDirectories);
-        httpRequest.SetRequestUri(uri);
-        HttpClient.Send(httpRequest, httpResponse);
+        HttpClient.Get(uri, httpResponse);
         httpResponse.Content.ReadAs(jsonText);
         if httpResponse.IsSuccessStatusCode then begin
             JsonArray.ReadFrom(jsonText);
@@ -296,23 +290,18 @@ codeunit 50010 "SFTP con WinSCP"
     var
         response: text;
         httpResponse: HttpResponseMessage;
-        httpRequest: HttpRequestMessage;
         JsonArray: JsonArray;
-        ParamToken, JsonToken : JsonToken;
+        ParamToken: JsonToken;
         JsonObject: JsonObject;
-        httpHeader: HttpHeaders;
-        httpContent: HttpContent;
-        jsonBody: Text;
         uri: Text;
     begin
+        CheckSessionOptions();
+
         SFTPConnectorList.Reset();
         SFTPConnectorList.DeleteAll();
 
-        CheckSessionOptions();
-        httpRequest.Method('GET');
         uri := HttpClient.GetBaseAddress() + StrSubstNo('SFTPListDirectoryFiles?sftpPath=%1&includeDirectories=%2', Url, IncludeDirectories);
-        httpRequest.SetRequestUri(uri);
-        HttpClient.Send(httpRequest, httpResponse);
+        HttpClient.Get(uri, httpResponse);
         httpResponse.Content.ReadAs(response);
         if httpResponse.IsSuccessStatusCode then begin
             JsonArray.ReadFrom(response);
@@ -434,16 +423,12 @@ codeunit 50010 "SFTP con WinSCP"
         // SPLN1.00 - Start
         // Session: DotNet Session;
         // RemovalOperationResult: DotNet RemovalOperationResult;
-        httpContent: HttpContent;
-        jsonBody: Text;
         response: text;
         httpResponse: HttpResponseMessage;
-        httpRequest: HttpRequestMessage;
-        httpHeader: HttpHeaders;
         uri: Text;
     // SPLN1.00 - End
     begin
-
+        CheckSessionOptions();
         // SPLN1.00 - Start
         // Session := Session.Session();
         // Session.Open(SessionOptions);
@@ -452,11 +437,9 @@ codeunit 50010 "SFTP con WinSCP"
         // RemovalOperationResult.Check(); //Throw on any error
         // 
         // Session.Dispose();
-        CheckSessionOptions();
-        httpRequest.Method('DELETE');
+
         uri := HttpClient.GetBaseAddress() + 'SFTPDeleteFiles?sftpPath=' + Url;
-        httpRequest.SetRequestUri(uri);
-        HttpClient.Send(httpRequest, httpResponse);
+        HttpClient.Delete(uri, httpResponse);
         if not httpResponse.IsSuccessStatusCode then begin
             httpResponse.Content.ReadAs(response);
             Error('%1 %2. %3', httpResponse.HttpStatusCode, httpResponse.ReasonPhrase, response);
@@ -469,19 +452,14 @@ codeunit 50010 "SFTP con WinSCP"
 
     procedure RemoveFile(Url: Text)
     var
-        httpContent: HttpContent;
-        jsonBody: Text;
         response: text;
         httpResponse: HttpResponseMessage;
-        httpRequest: HttpRequestMessage;
-        httpHeader: HttpHeaders;
         uri: Text;
     begin
         CheckSessionOptions();
-        httpRequest.Method('DELETE');
+
         uri := HttpClient.GetBaseAddress() + 'SFTPDeleteFile?sftpFilePath=' + Url;
-        httpRequest.SetRequestUri(uri);
-        HttpClient.Send(httpRequest, httpResponse);
+        HttpClient.Delete(uri, httpResponse);
         if not httpResponse.IsSuccessStatusCode then begin
             httpResponse.Content.ReadAs(response);
             Error('%1 %2. %3', httpResponse.HttpStatusCode, httpResponse.ReasonPhrase, response);
