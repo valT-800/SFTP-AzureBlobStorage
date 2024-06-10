@@ -18,11 +18,9 @@ codeunit 50010 "SFTP con WinSCP"
     var
         // SPLN1.00 - Start
         //    SessionOptions: DotNet SessionOptions;
-        FileMgt: Codeunit "File Management";
         HttpClient: HttpClient;
+        AzureFuncSetup: Record "Azure Function Connector Setup";
     // SPLN1.00 - End
-
-    [TryFunction]
 
     [TryFunction]
     procedure InitSessionOptions(Host: Text; User: Text; Password: Text; PortNumber: Integer; SshHostKeyFingerprint: Text)
@@ -35,6 +33,7 @@ codeunit 50010 "SFTP con WinSCP"
         httpHeader: HttpHeaders;
         response: Text;
         jsonObject: JsonObject;
+        uri: Text;
     // SPLN1.00 - End
     begin
         // SPLN1.00 - Start
@@ -49,6 +48,7 @@ codeunit 50010 "SFTP con WinSCP"
         //     SessionOptions.PortNumber := PortNumber;
         // SessionOptions.SshHostKeyFingerprint := SshHostKeyFingerprint;
 
+        AzureFuncSetup.Get();
         jsonObject.Add('address', Host);
         jsonObject.Add('port', PortNumber);
         jsonObject.Add('username', User);
@@ -58,14 +58,16 @@ codeunit 50010 "SFTP con WinSCP"
         httpContent.GetHeaders(httpHeader);
         httpHeader.Remove('Content-Type');
         httpHeader.Add('Content-Type', 'application/json');
-        HttpClient.SetBaseAddress('http://localhost:7185/api/');
-        HttpClient.Put('SFTPInitializeConnection', httpContent, httpResponse);
+        HttpClient.SetBaseAddress(AzureFuncSetup."Base Url");
+        uri := StrSubstNo('SFTPInitializeConnection?code=%1', AzureFuncSetup."Function Key");
+        HttpClient.Put(uri, httpContent, httpResponse);
         if not httpResponse.IsSuccessStatusCode then begin
             httpResponse.Content.ReadAs(response);
             Error('%1 %2. %3', httpResponse.HttpStatusCode, httpResponse.ReasonPhrase, response);
         end;
         // SPLN1.00 - End
     end;
+
 
     procedure CopyFolder(SourcePath: Text; DestinationPath: Text; IncludeSubFolders: Boolean)
     var
@@ -88,6 +90,7 @@ codeunit 50010 "SFTP con WinSCP"
         httpHeader: HttpHeaders;
         response: Text;
         jsonObject: JsonObject;
+        uri: Text;
     // SPLN1.00 - End
     begin
         CheckSessionOptions();
@@ -119,7 +122,7 @@ codeunit 50010 "SFTP con WinSCP"
         // END;
         // 
         // Session.Dispose();
-
+        uri := StrSubstNo('SFTPCopyDirectoryFromAzure?code=%1', AzureFuncSetup."Function Key");
         jsonObject.Add('azurePath', SourcePath);
         jsonObject.Add('sftpPath', DestinationPath);
         jsonObject.Add('includeSubDirectories', IncludeSubFolders);
@@ -128,7 +131,7 @@ codeunit 50010 "SFTP con WinSCP"
         httpContent.GetHeaders(httpHeader);
         httpHeader.Remove('Content-Type');
         httpHeader.Add('Content-Type', 'application/json');
-        HttpClient.Post('SFTPCopyDirectoryFromAzure', httpContent, httpResponse);
+        HttpClient.Post(uri, httpContent, httpResponse);
         if not httpResponse.IsSuccessStatusCode then begin
             httpResponse.Content.ReadAs(response);
             Error('%1 %2. %3', httpResponse.HttpStatusCode, httpResponse.ReasonPhrase, response);
@@ -149,6 +152,7 @@ codeunit 50010 "SFTP con WinSCP"
         httpHeader: HttpHeaders;
         response: Text;
         jsonObject: JsonObject;
+        uri: Text;
     // SPLN1.00 - End
     begin
         //CheckSessionOptions();
@@ -163,6 +167,7 @@ codeunit 50010 "SFTP con WinSCP"
         // TransferOperationResult.Check(); //Throw on any error
         // 
         // Session.Dispose();
+        uri := StrSubstNo('SFTPUploadFileFromAzure?code=%1', AzureFuncSetup."Function Key");
         jsonObject.Add('azureFilePath', SourceFile);
         jsonObject.Add('sftpPath', DestinationUrl);
         jsonObject.WriteTo(jsonBody);
@@ -170,7 +175,7 @@ codeunit 50010 "SFTP con WinSCP"
         httpContent.GetHeaders(httpHeader);
         httpHeader.Remove('Content-Type');
         httpHeader.Add('Content-Type', 'application/json');
-        HttpClient.Post('SFTPUploadFileFromAzure', httpContent, httpResponse);
+        HttpClient.Post(uri, httpContent, httpResponse);
         if not httpResponse.IsSuccessStatusCode then begin
             httpResponse.Content.ReadAs(response);
             Error('%1 %2. %3', httpResponse.HttpStatusCode, httpResponse.ReasonPhrase, response);
@@ -194,6 +199,7 @@ codeunit 50010 "SFTP con WinSCP"
         response: Text;
         file: Text;
         jsonObject: JsonObject;
+        uri: Text;
     // SPLN1.00 - End
     begin
         CheckSessionOptions();
@@ -210,6 +216,7 @@ codeunit 50010 "SFTP con WinSCP"
         // END;
         // 
         // Session.Dispose();
+        uri := StrSubstNo('SFTPUploadFileFromAzure?code=%1', AzureFuncSetup."Function Key");
         foreach file in Filenames do begin
             jsonObject.Remove('sftpPath');
             jsonObject.Remove('azureFilePath');
@@ -220,7 +227,7 @@ codeunit 50010 "SFTP con WinSCP"
             httpContent.GetHeaders(httpHeader);
             httpHeader.Remove('Content-Type');
             httpHeader.Add('Content-Type', 'application/json');
-            HttpClient.Post('SFTPUploadFileFromAzure', httpContent, httpResponse);
+            HttpClient.Post(uri, httpContent, httpResponse);
             if not httpResponse.IsSuccessStatusCode then begin
                 httpResponse.Content.ReadAs(response);
                 Error('%1 %2. %3', httpResponse.HttpStatusCode, httpResponse.ReasonPhrase, response);
@@ -270,7 +277,7 @@ codeunit 50010 "SFTP con WinSCP"
         // 
         // Session.Dispose();
 
-        uri := HttpClient.GetBaseAddress() + StrSubstNo('SFTPListDirectory?sftpPath=%1&includeDirectories=%2', Url, IncludeDirectories);
+        uri := StrSubstNo('SFTPListDirectory?code=%1&sftpPath=%2&includeDirectories=%3', AzureFuncSetup."Function Key", Url, IncludeDirectories);
         HttpClient.Get(uri, httpResponse);
         httpResponse.Content.ReadAs(jsonText);
         if httpResponse.IsSuccessStatusCode then begin
@@ -300,7 +307,7 @@ codeunit 50010 "SFTP con WinSCP"
         SFTPConnectorList.Reset();
         SFTPConnectorList.DeleteAll();
 
-        uri := HttpClient.GetBaseAddress() + StrSubstNo('SFTPListDirectoryFiles?sftpPath=%1&includeDirectories=%2', Url, IncludeDirectories);
+        uri := StrSubstNo('SFTPListDirectoryFiles?code=%1&sftpPath=%2&includeDirectories=%3', AzureFuncSetup."Function Key", Url, IncludeDirectories);
         HttpClient.Get(uri, httpResponse);
         httpResponse.Content.ReadAs(response);
         if httpResponse.IsSuccessStatusCode then begin
@@ -337,6 +344,7 @@ codeunit 50010 "SFTP con WinSCP"
         httpResponse: HttpResponseMessage;
         httpHeader: HttpHeaders;
         jsonObject: JsonObject;
+        uri: Text;
     // SPLN1.00 - End
     begin
         CheckSessionOptions();
@@ -361,6 +369,7 @@ codeunit 50010 "SFTP con WinSCP"
         // 
         // Session.Dispose();
 
+        uri := StrSubstNo('SFTPDownloadFilesToAzure?code=%1', AzureFuncSetup."Function Key");
         jsonObject.Add('sftpPath', Url);
         jsonObject.Add('azurePath', DestinationFolder);
         jsonObject.Add('remove', Remove);
@@ -369,7 +378,7 @@ codeunit 50010 "SFTP con WinSCP"
         httpContent.GetHeaders(httpHeader);
         httpHeader.Remove('Content-Type');
         httpHeader.Add('Content-Type', 'application/json');
-        HttpClient.Post('SFTPDownloadFilesToAzure', httpContent, httpResponse);
+        HttpClient.Post(uri, httpContent, httpResponse);
         if not httpResponse.IsSuccessStatusCode then begin
             httpResponse.Content.ReadAs(response);
             Error('%1 %2. %3', httpResponse.HttpStatusCode, httpResponse.ReasonPhrase, response);
@@ -386,6 +395,7 @@ codeunit 50010 "SFTP con WinSCP"
         httpResponse: HttpResponseMessage;
         httpHeader: HttpHeaders;
         jsonObject: JsonObject;
+        uri: Text;
     begin
         CheckSessionOptions();
 
@@ -399,6 +409,8 @@ codeunit 50010 "SFTP con WinSCP"
                 DestinationFolder := DestinationFolder + '/';
         END;
 
+        uri := StrSubstNo('SFTPDownloadFile?code=%1', AzureFuncSetup."Function Key");
+
         jsonObject.Add('sftpFilePath', Url);
         jsonObject.Add('azurePath', DestinationFolder);
         jsonObject.Add('remove', Remove);
@@ -408,7 +420,7 @@ codeunit 50010 "SFTP con WinSCP"
         httpContent.GetHeaders(httpHeader);
         httpHeader.Remove('Content-Type');
         httpHeader.Add('Content-Type', 'application/json');
-        HttpClient.Post('SFTPDownloadFile', httpContent, httpResponse);
+        HttpClient.Post(uri, httpContent, httpResponse);
         if not httpResponse.IsSuccessStatusCode then begin
             httpResponse.Content.ReadAs(response);
             Error('%1 %2. %3', httpResponse.HttpStatusCode, httpResponse.ReasonPhrase, response);
@@ -428,6 +440,7 @@ codeunit 50010 "SFTP con WinSCP"
         uri: Text;
     // SPLN1.00 - End
     begin
+
         CheckSessionOptions();
         // SPLN1.00 - Start
         // Session := Session.Session();
@@ -438,7 +451,7 @@ codeunit 50010 "SFTP con WinSCP"
         // 
         // Session.Dispose();
 
-        uri := HttpClient.GetBaseAddress() + 'SFTPDeleteFiles?sftpPath=' + Url;
+        uri := StrSubstNo('SFTPDeleteFiles?code=%1&sftpPath=%2', AzureFuncSetup."Function Key", Url);
         HttpClient.Delete(uri, httpResponse);
         if not httpResponse.IsSuccessStatusCode then begin
             httpResponse.Content.ReadAs(response);
@@ -458,7 +471,7 @@ codeunit 50010 "SFTP con WinSCP"
     begin
         CheckSessionOptions();
 
-        uri := HttpClient.GetBaseAddress() + 'SFTPDeleteFile?sftpFilePath=' + Url;
+        uri := StrSubstNo('SFTPDeleteFile?code=%1&sftpFilePath=%2', AzureFuncSetup."Function Key", Url);
         HttpClient.Delete(uri, httpResponse);
         if not httpResponse.IsSuccessStatusCode then begin
             httpResponse.Content.ReadAs(response);
@@ -473,11 +486,13 @@ codeunit 50010 "SFTP con WinSCP"
         TXT_NOT_INITIALIZED: Label 'This is a programming error: The codeunit has not been properly initialized. Call the InitSessionOptions function first.';
         // SPLN1.00 - Start
         httpResponse: HttpResponseMessage;
+        uri: Text;
     // SPLN1.00 - End
     begin
         // SPLN1.00 - Start
         // IF ISNULL(SessionOptions) THEN
-        HttpClient.Get('SFTPCheckConnection', httpResponse);
+        uri := 'SFTPCheckConnection?code=' + AzureFuncSetup."Function Key";
+        HttpClient.Get(uri, httpResponse);
         if not httpResponse.IsSuccessStatusCode then
             // SPLN1.00 - End
             ERROR(TXT_NOT_INITIALIZED);

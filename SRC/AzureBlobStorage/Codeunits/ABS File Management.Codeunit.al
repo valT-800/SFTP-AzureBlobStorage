@@ -64,7 +64,10 @@ codeunit 51119 "ABS File Management"
         response: Text;
         httpClient: HttpClient;
         jsonObject: JsonObject;
+        uri: Text;
+        AzureFuncSetup: Record "Azure Function Connector Setup";
     begin
+        AzureFuncSetup.Get();
         jsonObject.Add('accountName', StorageAccountName);
         jsonObject.Add('accountKey', SharedKey);
         jsonObject.Add('containerName', ContainerName);
@@ -73,10 +76,11 @@ codeunit 51119 "ABS File Management"
         httpContent.GetHeaders(httpHeader);
         httpHeader.Remove('Content-Type');
         httpHeader.Add('Content-Type', 'application/json');
-        httpClient.Put('http://localhost:7185/api/AzureChangeConfigValues', httpContent, httpResponse);
+        uri := StrSubstNo('%1AzureChangeConfigValues?code=%2', AzureFuncSetup."Base Url", AzureFuncSetup."Function Key");
+        httpClient.Put(uri, httpContent, httpResponse);
         if not httpResponse.IsSuccessStatusCode then begin
             httpResponse.Content.ReadAs(response);
-            Error(response);
+            Error('%1 %2. %3', httpResponse.HttpStatusCode, httpResponse.ReasonPhrase, response);
         end;
     end;
 
