@@ -12,11 +12,11 @@ table 51116 "ABS Connector Setup"
         {
             DataClassification = ToBeClassified;
         }
-        field(4; "Shared Key"; Text[250])
+        field(3; "Shared Key"; Text[250])
         {
             DataClassification = EndUserIdentifiableInformation;
         }
-        field(5; "Container Name"; Text[250])
+        field(4; "Container Name"; Text[250])
         {
             DataClassification = ToBeClassified;
         }

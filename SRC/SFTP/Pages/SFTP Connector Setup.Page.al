@@ -180,6 +180,4 @@ page 51113 "SFTP Connector Setup"
         AzureFileName: Text;
         AzureDirectoryPath: Text;
         SFTP: Codeunit "SFTP con WinSCP";
-        FileMgt: Codeunit "File Management";
-
 }

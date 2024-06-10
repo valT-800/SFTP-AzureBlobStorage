@@ -409,7 +409,7 @@ codeunit 50010 "SFTP con WinSCP"
                 DestinationFolder := DestinationFolder + '/';
         END;
 
-        uri := StrSubstNo('SFTPDownloadFile?code=%1', AzureFuncSetup."Function Key");
+        uri := StrSubstNo('SFTPDownloadFileToAzure?code=%1', AzureFuncSetup."Function Key");
 
         jsonObject.Add('sftpFilePath', Url);
         jsonObject.Add('azurePath', DestinationFolder);

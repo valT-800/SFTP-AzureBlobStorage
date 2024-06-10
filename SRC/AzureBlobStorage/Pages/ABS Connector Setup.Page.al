@@ -265,6 +265,4 @@ page 51116 "ABS Connector Setup"
         DirectoryName: Text;
         BlobContents: Text;
         ABSFileManagement: Codeunit "ABS File Management";
-        FileMgt: Codeunit "File Management";
-
 }

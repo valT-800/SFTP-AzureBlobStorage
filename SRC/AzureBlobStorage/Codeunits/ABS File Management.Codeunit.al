@@ -13,7 +13,6 @@ codeunit 51119 "ABS File Management"
         FileDoesNotExistErr: Label 'The blob file %1 does not exist.', Comment = '%1 File Path';
         Text013: Label 'The file name %1 already exists.';
         AllFilesFilterTxt: Label '*.*', Locked = true;
-        AllFilesDescriptionTxt: Label 'All Files (*.*)|*.*', Comment = '{Split=r''\|''}{Locked=s''1''}';
 
     procedure ChangeConnectionValues(StorageAccountName: Text[250]; ContainerName: Text[250]; SharedKey: Text[250])
     var
