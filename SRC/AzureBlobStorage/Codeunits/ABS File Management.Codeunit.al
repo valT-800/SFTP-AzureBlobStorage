@@ -105,6 +105,18 @@ codeunit 51119 "ABS File Management"
             Error(ABSOperationResponse.GetError());
     end;
 
+    //Replaces File - Create
+    procedure CreateBlobFile(BlobFileName: Text) ABSBlobList: Record "ABS Connector List";
+    var
+        InStream: InStream;
+        TempBlob: Codeunit "Temp Blob";
+    begin
+        TempBlob.CreateInStream(InStream);
+        SaveBlobFromInStream(BlobFileName, InStream);
+        GetDirectoryBlobFilesList(ABSBlobList);
+        ABSBlobList.SetRange("Full Name", BlobFileName);
+    end;
+
     //Replaces File - CreateTempFile
     procedure CreateTempBlobFile() ABSBlobList: Record "ABS Connector List";
     var
@@ -431,7 +443,7 @@ codeunit 51119 "ABS File Management"
             Error(ABSOperationResponse.GetError());
     end;
     //Could be used instead File - Close
-    //Used locally in UploadFileWithFilters, CreateTempBlobFile, TempBlobFileName
+    //Used locally in UploadFileWithFilters, CreateBlobFile, CreateTempBlobFile, TempBlobFileName
     procedure SaveBlobFromInStream(var BlobFileName: Text; InStream: InStream) Saved: Boolean
     var
         FilePath: Text;
