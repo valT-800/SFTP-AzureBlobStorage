@@ -140,29 +140,29 @@ codeunit 51119 "ABS File Management"
         FullBlobFileName: Text;
     begin
         InitializeConnection();
-        FixPath(BlobFileName);
+        BlobFileName := FixPath(BlobFileName);
         FullBlobFileName := Magicpath() + '/' + BlobFileName;
         ABSBlobClient.GetBlobAsFile(FullBlobFileName);
         exit(FullBlobFileName);
     end;
 
     //Replaces File Management - UploadFile
-    procedure UploadFile(DialogTitle: Text) BlobFileName: Text
+    procedure UploadFile(DialogTitle: Text[50]; DirectoryName: Text) BlobFileName: Text
     begin
-        BlobFileName := UploadFileWithFilter(DialogTitle, AllFilesFilterTxt);
+        BlobFileName := UploadFileWithFilter(DialogTitle, DirectoryName, '', AllFilesFilterTxt);
     end;
 
     //Replaces File - Upload, File Management - UploadFileWithFilters
-    procedure UploadFileWithFilter(DialogTitle: Text; ExtFilter: Text) BlobFileName: Text
+    procedure UploadFileWithFilter(DialogTitle: Text[50]; DirectoryName: Text; FileFilter: Text; ExtFilter: Text) BlobFileName: Text
     var
         Uploaded: Boolean;
         InStream: InStream;
-        ClientFileName: Text;
+        FileName: Text;
     begin
         InitializeConnection();
-
-        UploadIntoStream(DialogTitle, '', '', ClientFileName, InStream);
-        BlobFileName := FileMgt.GetFileName(ClientFileName);
+        DirectoryName := FixPath(DirectoryName);
+        UploadIntoStream(DialogTitle, '', '', FileName, InStream);
+        BlobFileName := DirectoryName + '/' + FileName;
         Uploaded := SaveBlobFromInStream(BlobFileName, InStream);
 
         if Uploaded then
@@ -178,14 +178,12 @@ codeunit 51119 "ABS File Management"
     end;
 
     //Replaces File - Download, File Management - DownloadHandler
-    procedure DownloadBlobHandler(BlobFileName: Text; ToFileName: Text) Downloaded: Boolean
+    procedure DownloadBlobFile(BlobFileName: Text) Downloaded: Boolean
     var
-        FileExt: Text;
-        InStream: InStream;
         ABSOperationResponse: Codeunit "ABS Operation Response";
     begin
         InitializeConnection();
-        FixPath(BlobFileName);
+        BlobFileName := FixPath(BlobFileName);
 
         ABSOperationResponse := ABSBlobClient.GetBlobAsFile(BlobFileName);
         if ABSOperationResponse.IsSuccessful() then
@@ -200,8 +198,8 @@ codeunit 51119 "ABS File Management"
         ABSOperationResponse: Codeunit "ABS Operation Response";
     begin
         InitializeConnection();
-        FixPath(SourceBlobName);
-        FixPath(TargetBlobName);
+        SourceBlobName := FixPath(SourceBlobName);
+        TargetBlobName := FixPath(TargetBlobName);
         FileMgt.IsAllowedPath(SourceBlobName, false);
         FileMgt.IsAllowedPath(TargetBlobName, false);
 
@@ -216,7 +214,7 @@ codeunit 51119 "ABS File Management"
     procedure BlobFileExists(BlobFileName: Text): Boolean
     begin
         InitializeConnection();
-        FixPath(BlobFileName);
+        BlobFileName := FixPath(BlobFileName);
 
         if ABSBlobClient.BlobExists(BlobFileName) then
             exit(true);
@@ -229,7 +227,7 @@ codeunit 51119 "ABS File Management"
         ABSOperationResponse: Codeunit "ABS Operation Response";
     begin
         InitializeConnection();
-        FixPath(BlobFileName);
+        BlobFileName := FixPath(BlobFileName);
         FileMgt.IsAllowedPath(BlobFileName, false);
         if not BlobFileExists(BlobFileName) then
             exit(false);
@@ -249,8 +247,8 @@ codeunit 51119 "ABS File Management"
         NewFilePath: Text;
     begin
         InitializeConnection();
-        FixPath(OldBlobName);
-        FixPath(NewBlobName);
+        OldBlobName := FixPath(OldBlobName);
+        NewBlobName := FixPath(NewBlobName);
         OldFileName := FileMgt.GetFileNameWithoutExtension(FileMgt.GetFileName(OldBlobName));
         NewBlobName := FileMgt.GetFileNameWithoutExtension(NewBlobName);
         ABSOperationResponse := ABSBlobClient.CopyBlob(NewBlobName, OldBlobName);
@@ -269,7 +267,7 @@ codeunit 51119 "ABS File Management"
         FileMgt.IsAllowedPath(DirectoryName, false);
 
         InitializeConnection();
-        FixPath(DirectoryName);
+        DirectoryName := FixPath(DirectoryName);
 
         ABSBlobClient.ListBlobs(ABSContent);
         if ABSContent.FindSet() then
@@ -312,18 +310,17 @@ codeunit 51119 "ABS File Management"
     var
         ABSOperationResponse: Codeunit "ABS Operation Response";
         ABSContent: Record "ABS Container Content";
+        ParentDirectory: Text;
     begin
         InitializeConnection();
-        FixPath(DirectoryName);
-
-        DirectoryName := DirectoryName.Replace('\', '/');
-        if not DirectoryName.EndsWith('/') then
-            DirectoryName := DirectoryName + '/';
+        DirectoryName := FixPath(DirectoryName);
 
         FileMgt.IsAllowedPath(DirectoryName, false);
         if DirectoryExists(DirectoryName) then
             ABSBlobClient.ListBlobs(ABSContent);
-        ABSContent.SetRange("Parent Directory", DirectoryName);
+
+        ParentDirectory := DirectoryName + '/';
+        ABSContent.SetRange("Parent Directory", ParentDirectory);
         ABSOperationResponse := ABSBlobClient.DeleteBlob(ABSContent."Full Name");
         if not ABSOperationResponse.IsSuccessful() then
             Error(ABSOperationResponse.GetError());
@@ -353,9 +350,10 @@ codeunit 51119 "ABS File Management"
     var
         ABSOperationResponse: Codeunit "ABS Operation Response";
         ABSContent: Record "ABS Container Content";
+        ParentDirectory: Text;
     begin
         InitializeConnection();
-        FixPath(DirectoryName);
+        DirectoryName := FixPath(DirectoryName);
 
         ABSListRec.Reset();
         ABSListRec.DeleteAll();
@@ -363,9 +361,8 @@ codeunit 51119 "ABS File Management"
         ABSOperationResponse := ABSBlobClient.ListBlobs(ABSContent);
         if DirectoryName <> '' then begin
             FileMgt.IsAllowedPath(DirectoryName, false);
-            if not DirectoryName.EndsWith('/') then
-                DirectoryName := DirectoryName + '/';
-            ABSContent.SetRange("Parent Directory", DirectoryName);
+            ParentDirectory := DirectoryName + '/';
+            ABSContent.SetRange("Parent Directory", ParentDirectory);
         end;
         if ABSContent.FindSet() then
             repeat
@@ -402,14 +399,16 @@ codeunit 51119 "ABS File Management"
     var
         ABSOperationResponse: Codeunit "ABS Operation Response";
         ABSContent: Record "ABS Container Content";
+        ParentDirectory: Text;
     begin
         InitializeConnection();
-        FixPath(DirectoryName);
+        DirectoryName := FixPath(DirectoryName);
 
         ABSOperationResponse := ABSBlobClient.ListBlobs(ABSContent);
         if DirectoryName <> '' then begin
             FileMgt.IsAllowedPath(DirectoryName, false);
-            ABSContent.SetFilter("Parent Directory", '*%1*', DirectoryName);
+            ParentDirectory := DirectoryName + '/';
+            ABSContent.SetFilter("Parent Directory", '*%1*', ParentDirectory);
         end;
         if ABSContent.FindSet() then
             repeat
@@ -439,7 +438,7 @@ codeunit 51119 "ABS File Management"
         ABSOperationResponse: Codeunit "ABS Operation Response";
     begin
         InitializeConnection();
-        FixPath(BlobFileName);
+        BlobFileName := FixPath(BlobFileName);
 
         ABSOperationResponse := ABSBlobClient.PutBlobBlockBlobStream(BlobFileName, InStream);
         if ABSOperationResponse.IsSuccessful() then
@@ -456,7 +455,7 @@ codeunit 51119 "ABS File Management"
         ABSOperationResponse: Codeunit "ABS Operation Response";
     begin
         InitializeConnection();
-        FixPath(BlobFileName);
+        BlobFileName := FixPath(BlobFileName);
         FileMgt.IsAllowedPath(BlobFileName, false);
 
         if not BlobFileExists(BlobFileName) then
@@ -478,7 +477,7 @@ codeunit 51119 "ABS File Management"
         ABSOperationResponse: Codeunit "ABS Operation Response";
     begin
         InitializeConnection();
-        FixPath(BlobFileName);
+        BlobFileName := FixPath(BlobFileName);
         FileMgt.IsAllowedPath(BlobFileName, false);
 
         if not BlobFileExists(BlobFileName) then
@@ -499,7 +498,7 @@ codeunit 51119 "ABS File Management"
         ABSOperationResponse: Codeunit "ABS Operation Response";
     begin
         InitializeConnection();
-        FixPath(BlobFileName);
+        BlobFileName := FixPath(BlobFileName);
         if BlobFileExists(BlobFileName) then
             Error(Text013, BlobFileName);
 
@@ -544,20 +543,6 @@ codeunit 51119 "ABS File Management"
             Error(ABSOperationResponse.GetError());
     end;
 
-    //Replaces File Management - IsClientDirectoryEmpty, IsServerDirectoryEmpty
-    procedure IsDirectoryEmpty(DirectoryName: Text): Boolean
-    var
-        ABSContent: Record "ABS Container Content" temporary;
-    begin
-        InitializeConnection();
-        FixPath(DirectoryName);
-        FileMgt.IsAllowedPath(DirectoryName, false);
-        if DirectoryExists(DirectoryName) then begin
-            ABSBlobClient.ListBlobs(ABSContent);
-            exit(ABSContent.Count() = 0);
-        end;
-        exit(false);
-    end;
     //Replaces File Management - GetFileContents
     procedure GetFileContents(BlobFileName: Text) Result: Text
     var
@@ -565,7 +550,7 @@ codeunit 51119 "ABS File Management"
         ABSOperationResponse: Codeunit "ABS Operation Response";
     begin
         InitializeConnection();
-        FixPath(BlobFileName);
+        BlobFileName := FixPath(BlobFileName);
         if not BlobFileExists(BlobFileName) then
             exit;
 
@@ -578,13 +563,13 @@ codeunit 51119 "ABS File Management"
 
     local procedure FixPath(Path: Text): Text
     var
-        SPPath: Text;
+        ABSPath: Text;
     begin
-        SPPath := Path.Replace('\', '/');
-        SPPath := SPPath.Replace('//', '/');
-        if not SPPath.EndsWith('/') then
-            SPPath := SPPath + '/';
-        exit(SPPath);
+        ABSPath := Path.Replace('\', '/');
+        ABSPath := ABSPath.Replace('//', '/');
+        if ABSPath.EndsWith('/') then
+            ABSPath := DelStr(ABSPath, StrLen(ABSPath));
+        exit(ABSPath);
     end;
 
 }

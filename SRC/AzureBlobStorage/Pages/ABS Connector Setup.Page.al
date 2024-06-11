@@ -128,7 +128,7 @@ page 51116 "ABS Connector Setup"
                     BlobName: Text;
                     InStream: InStream;
                 begin
-                    BlobName := ABSFileManagement.UploadFile('');
+                    BlobName := ABSFileManagement.UploadFile('', DirectoryName);
                     if not (BlobName = '') then
                         Message('File uploaded');
                 end;
@@ -217,7 +217,7 @@ page 51116 "ABS Connector Setup"
                     FileName: Text;
                 begin
                     CurrPage.ABSList.Page.GetRecord(ABSListRec);
-                    ABSFileManagement.DownloadBlobHandler(ABSListRec.Name, BlobName);
+                    ABSFileManagement.DownloadBlobFile(ABSListRec.Name);
                 end;
             }
             action(DeleteBlob)
